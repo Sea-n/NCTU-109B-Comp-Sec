@@ -1,0 +1,4 @@
+scapy==2.4.4
+netifaces==0.10.9
+python-nmap==0.6.4
+NetfilterQueue==0.8.1
