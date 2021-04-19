@@ -14,4 +14,4 @@ clean:
 	-rm -rf sslsplit-log/
 
 pack:
-	7z a 0816146.7z Makefile mitm_attack pharm_attack mitm_grep.sh
+	7z a 0816146.7z Makefile mitm_attack pharm_attack mitm_grep.sh report.pdf
