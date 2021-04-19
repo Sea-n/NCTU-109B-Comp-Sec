@@ -10,7 +10,7 @@ all:
 		-subj '/C=TW/O=NCTU/CN=sean.taipei'
 
 clean:
-	-rm ca.key ca.crt sslsplit-connections.log
+	-rm ca.key ca.crt
 	-rm -rf sslsplit-log/
 
 pack:
