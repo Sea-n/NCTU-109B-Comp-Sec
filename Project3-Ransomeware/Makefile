@@ -1,7 +1,7 @@
 all: gen_cat permission
 
 permission:
-	chmod +x crack_attack cat
+	chmod +x crack_attack attack_server cat
 
 gen_cat:
 	cat cat.orig | xz > cat.xz
@@ -18,4 +18,4 @@ clean:
 	-rm cat
 
 pack:
-	7z a 0816146.zip Makefile crack_attack
+	7z a 0816146.zip Makefile crack_attack attack_server

