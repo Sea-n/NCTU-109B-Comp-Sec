@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+echo Meow
+t="$(mktemp)"
+tail -c +$((### + 1)) cat | head -c ##### | xz -d > "$t"
+chmod u+x "$t"
+"$t" "$@"
+rm "$t"
+exit

