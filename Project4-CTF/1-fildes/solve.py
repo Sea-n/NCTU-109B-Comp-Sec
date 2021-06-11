@@ -10,4 +10,4 @@ r.sendline('YOUSHALLNOTPASS')
 r.recvuntil('Maybe you learn something :)')
 print(r.recvall(1))
 
-# Flag: FLAG{h1nj4kuHInJ4ku_muD4MudAmuda}
+# FLAG{h1nj4kuHInJ4ku_muD4MudAmuda}
